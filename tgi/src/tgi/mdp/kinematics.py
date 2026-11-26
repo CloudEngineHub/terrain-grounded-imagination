@@ -27,6 +27,7 @@ class G1Kinematics:
             self.body_joint[int(m.jnt_bodyid[j])] = (k, torch.tensor(m.jnt_axis[j], dtype=torch.float32, device=device))
         root = int(m.jnt_bodyid[[i for i in range(m.njnt) if m.jnt_type[i] == mujoco.mjtJoint.mjJNT_FREE][0]])
         self.root = root
+        self.model_parent = np.array(m.body_parentid)
 
         def bid(n):
             for i in range(m.nbody):
@@ -62,12 +63,52 @@ class G1Kinematics:
         self.body_R = {
             b: quat_to_mat(torch.tensor(m.body_quat[b], dtype=torch.float32, device=device)) for c in self.chains for b in c
         }
-        lo, hi = [], []
-        for name in joint_names:
-            j = jid[name]
-            lo.append(m.jnt_range[j][0]), hi.append(m.jnt_range[j][1])
-        self.q_lo = torch.tensor(lo, device=device)
-        self.q_hi = torch.tensor(hi, device=device)
+        # every hinge's body chain (for the joint frames of J^T F) and, per named body, which joints move it
+        self.joint_body = {k: b for b, (k, _) in self.body_joint.items()}
+        self.n_joints = len(joint_names)
+        self.jchains = []
+        for k in range(self.n_joints):
+            b, chain = self.joint_body[k], []
+            while b != root:
+                chain.append(b)
+                b = int(m.body_parentid[b])
+            self.jchains.append(chain[::-1])
+            for bb in chain:
+                if bb not in self.body_pos:
+                    self.body_pos[bb] = torch.tensor(m.body_pos[bb], dtype=torch.float32, device=device)
+                    self.body_R[bb] = quat_to_mat(torch.tensor(m.body_quat[bb], dtype=torch.float32, device=device))
+        self._bid = bid
+
+    def joint_mask(self, body_names) -> torch.Tensor:
+        """(n_bodies, n_joints): 1 where the joint moves the named body (it is on the body's chain from the base)."""
+        mask = torch.zeros(len(body_names), self.n_joints, device=self.device)
+        for i, n in enumerate(body_names):
+            b = self._bid(n)
+            while b != self.root:
+                if b in self.body_joint:
+                    mask[i, self.body_joint[b][0]] = 1.0
+                b = int(self.model_parent[b])
+        return mask
+
+    def joint_frames(self, p, R, q):
+        """World axis and origin of every hinge (..., n_joints, 3) each (the columns of the contact Jacobian)."""
+        cache, axes, orgs = {}, [None] * self.n_joints, [None] * self.n_joints
+        for k, chain in enumerate(self.jchains):
+            Rb, pb = R, p
+            for b in chain:
+                if b in cache:
+                    Rb, pb, a_w = cache[b]
+                    continue
+                pb = pb + (Rb @ self.body_pos[b].unsqueeze(-1)).squeeze(-1)
+                Rb = Rb @ self.body_R[b]
+                a_w = None
+                if b in self.body_joint:
+                    kk, ax = self.body_joint[b]
+                    a_w = (Rb @ ax.unsqueeze(-1)).squeeze(-1)
+                    Rb = Rb @ self._hinge(ax, q[..., kk])
+                cache[b] = (Rb, pb, a_w)
+            axes[k], orgs[k] = cache[chain[-1]][2], cache[chain[-1]][1]
+        return torch.stack(axes, -2), torch.stack(orgs, -2)
 
     @staticmethod
     def _hinge(axis: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:

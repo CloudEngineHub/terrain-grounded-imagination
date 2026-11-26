@@ -51,7 +51,7 @@ class TerrainFeatures:
         # argmax + gather instead of amax (compiled amax gave NaN gradients)
         return p[..., 2] - h.gather(-1, h.detach().argmax(-1, keepdim=True)).squeeze(-1)
 
-    def wm_features(self, p, R, fp, foot_R) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def wm_features(self, p, R, fp, foot_R):
         """fp: foot sites (..., 2, 3); foot_R: foot rotations (..., 2, 3, 3).
 
         Returns (features, foot clearance (..., 2), terrain roughness under each sole (..., 2), unsupported sole share
@@ -68,18 +68,29 @@ class TerrainFeatures:
         clear = fp[..., 2] - h_c
         rel = (h - h_c.unsqueeze(-1)).clamp(-1.0, 1.0)
         rough = rel.std(-1)
-        # unsupported fraction of the sole: grid points more than ~3 cm off the foot's support height
-        rel_s = rel
-        if getattr(self.hm, "exact_support", False):
-            # exact heights forward, bilinear gradient (bilinear values smear stone edges over a cell)
-            h_n = self.hm.query_nearest(pts)
-            rel_s = rel + ((h_n - h_n[..., self.foot_center].unsqueeze(-1)).clamp(-1.0, 1.0) - rel).detach()
+        # unsupported fraction of the sole: grid points more than ~3 cm off the foot's support height; exact
+        # (nearest-node) heights forward, bilinear gradient (bilinear values smear stone edges over a cell, so a
+        # centred foot on a 20 cm stone would read as unsupported)
+        h_n = self.hm.query_nearest(pts)
+        rel_s = rel + ((h_n - h_n[..., self.foot_center].unsqueeze(-1)).clamp(-1.0, 1.0) - rel).detach()
         unsupported = torch.sigmoid((rel_s.abs() - 0.03) / 0.01).mean(-1)
         # smooth support field: its gradient pulls the soles toward stone centres
         unsupported_field = 1.0 - self.hm.query_support(pts).mean(-1)
         unsupported = torch.stack((unsupported, unsupported_field), -1)
         feats = torch.cat((hb, base, clear, rel.flatten(-2)), -1)
         return feats, clear, rough, unsupported
+
+    def foot_contact_geometry(self, fp, foot_R) -> dict:
+        """Exact contact geometry of each sole on the heightmap (for the world model's contact wrenches): the gap phi (..., 2) between
+        the sole and the highest terrain under it (5 x 3 sole points; the first point a lowered sole would touch), the
+        surface normal n (..., 2, 3) (the heightmap's surfaces face up), the contact point x (the foot site) and the
+        sole rotation (for the centre-of-pressure bounds of the contact moment)."""
+        pts = self._points(fp[..., :2], self._yaw2(foot_R), self.foot_grid)  # (..., 2, 15, 2)
+        h = self.hm.query(pts)
+        h_top = h.gather(-1, h.detach().argmax(-1, keepdim=True)).squeeze(-1)  # argmax + gather (compile-safe)
+        n = torch.zeros_like(fp)
+        n[..., 2] = 1.0
+        return {"phi": fp[..., 2] - h_top, "n": n, "x": fp, "foot_R": foot_R}
 
     def critic_scan(self, p, R) -> torch.Tensor:
         R2 = self._yaw2(R)

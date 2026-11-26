@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from ..constants import NUM_J, STATE_DIM, XI_DIM
+from ..constants import NUM_CB, NUM_J, STATE_DIM, XI_DIM
 
 FIELDS = {
     "s": (STATE_DIM, torch.float32),
@@ -16,12 +16,13 @@ FIELDS = {
     "xi": (XI_DIM, torch.float32),
     "ep_step": ((), torch.int32),
     "done": ((), torch.bool),
+    "f1": ((NUM_CB, 3), torch.float32),  # net contact force on each foot (world frame)
 }
 
 
 class ReplayBuffer:
-    def __init__(self, T: int, N: int, device: str, extra_fields: dict | None = None):
-        self.fields = dict(FIELDS, **(extra_fields or {}))
+    def __init__(self, T: int, N: int, device: str):
+        self.fields = dict(FIELDS)
         self.T, self.N, self.device = T, N, device
         self.data = {}
         for k, (shape, dt) in self.fields.items():
@@ -58,7 +59,7 @@ class ReplayBuffer:
         return out
 
     def sample_starts(self, B: int, hist: int, keys=("s", "a_prev", "xi", "cmd", "c1")):
-        """Start points for imagination plus the indices of their observation history (oldest first)."""
+        """Start points for imagination plus their observation history (oldest first)."""
         age = torch.randint(0, self.size, (B,), device=self.device)
         env = torch.randint(0, self.N, (B,), device=self.device)
         row = self._row(age)

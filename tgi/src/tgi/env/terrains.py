@@ -72,7 +72,7 @@ def isaac_stepping_stones(**kw):
         stone_width_range: tuple[float, float] = (0.6, 0.2)
         stone_distance_range: tuple[float, float] = (0.02, 0.25)
         stone_height_limit: tuple[float, float] = (0.0, 0.05)
-        holes_depth_range: tuple[float, float] = (0.5, 2.0)  # uniform per tile
+        holes_depth_range: tuple[float, float] = (0.15, 2.0)  # uniform per tile
         progression: float = 1.5
         width_jitter: float = 0.05
         gap_jitter: float = 0.03

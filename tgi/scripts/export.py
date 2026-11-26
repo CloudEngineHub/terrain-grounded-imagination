@@ -3,7 +3,7 @@
 Writes ``model_<it>.pt`` (rsl-rl 3.3.0 ActorCritic, observation normalization baked into the actor),
 ``foot_model_<it>.pt`` (TorchScript FPM) and ``exported/`` (policy and FPM as ONNX, ``deploy.json``) for sim2sim.
 
-    python scripts/export.py --ckpt logs/<run>/ckpt_100000.pt
+    python scripts/export.py --ckpt logs/<run>/ckpt_040000.pt
 """
 
 from __future__ import annotations
@@ -22,8 +22,6 @@ from tgi.mdp.interface import (ACTION_SCALE, DEFAULT_POSE, FOOTHOLD_SCAN_DIM, IS
 from tgi.policy_io import load_policy_bundle
 
 CRITIC_OBS_DIM = PROPRIO_DIM + 33 * 21 + FOOTHOLD_SCAN_DIM  # base env CriticCfg: policy terms + height_scan + foothold_scan
-# --scan full: the critic has no foothold_scan
-CRITIC_OBS_DIM_FULL = PROPRIO_DIM + 33 * 21
 # the base env's actuator gains (Isaac joint order), used by sim2sim
 GAINS = os.path.join(os.path.dirname(os.path.abspath(tgi.deploy.__file__)), "g1_gains.json")
 
@@ -73,19 +71,11 @@ def main():
 
     actor = baked_actor(b.pi)
     # the baked actor must match the trained policy
-    full = b.fpm is None and b.args.get("scan", "foothold") == "full"
     o, e = torch.randn(64, PROPRIO_DIM), torch.randn(64, b.pi.extra_dim) * 0.3
     with torch.no_grad():
         err = (actor(torch.cat((o, e), -1)) - b.pi(o.unsqueeze(1), e)).abs().max().item()
     assert err < 1e-3, err
-    torch.save(rsl_rl_checkpoint(actor, it, critic_dim=CRITIC_OBS_DIM_FULL if full else CRITIC_OBS_DIM),
-               os.path.join(out, f"model_{it}.pt"))
-    if b.fpm is None:  # --scan full (evaluate with FPM_POLICY_SCAN=full) or --fpm 0 (fixed footholds): no foot model
-        torch.onnx.export(actor, (torch.zeros(1, PROPRIO_DIM + b.pi.extra_dim),), os.path.join(out, "exported", "policy.onnx"),
-                          input_names=["obs"], output_names=["actions"], dynamo=False)
-        kind = "full-height-scan" if full else "fixed-foothold"
-        print(f"exported {kind} policy to {out} (baked-actor max err {err:.2e}); no foot model")
-        return
+    torch.save(rsl_rl_checkpoint(actor, it), os.path.join(out, f"model_{it}.pt"))
 
     foot = torch.jit.script(b.fpm.exportable().eval())
     torch.jit.save(foot, os.path.join(out, f"foot_model_{it}.pt"))

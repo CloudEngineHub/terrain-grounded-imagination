@@ -1,7 +1,7 @@
 #!/bin/bash
 # End-to-end pipeline, from scratch: world model + FPM + policy training in imagination (the defaults of
-# scripts/train.py are the full recipe), background course checks every 2k / 20k iterations, then the final export,
-# final evaluation (sim2sim courses + base env validation in Isaac Lab) and videos.
+# scripts/train.py are the full recipe), then the final export, final evaluation (sim2sim courses + base env
+# validation in Isaac Lab) and videos.
 #
 # Usage: scripts/pipeline.sh <run_name> [extra scripts/train.py args]
 #   RESUME=1 scripts/pipeline.sh <run_name> [same extra args]   only to recover from a crash of the same run (continues

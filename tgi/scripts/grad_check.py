@@ -56,8 +56,6 @@ def main():
             setattr(cfg, k, v)
     cfg.resume, cfg.num_envs, cfg.vram_gb, cfg.seed = a.ckpt, a.num_envs, a.vram_gb, a.seed
     cfg.compile, cfg.async_collect, cfg.eval_every, cfg.quick_every = 0, 0, 0, 0
-    if cfg.scan == "full":
-        cfg.fpm = 0
 
     from tgi.mdp import normalize_xi, unflatten_state
     from tgi.mdp.interface import XY_DRIFT, Z_DRIFT
@@ -87,8 +85,7 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     for m in (tr.pi, tr.wm, tr.critic, tr.fpm):
-        if m is not None:
-            m.requires_grad_(False)
+        m.requires_grad_(False)
 
     gen = torch.Generator(device=dev).manual_seed(a.seed)
     ages, envs = [], []
@@ -126,7 +123,7 @@ def main():
             steps.append((S, K, c, a_prev, prev_a))
         flat = lambda xs: torch.stack(xs).flatten(0, 1)  # noqa: E731
         S_all = tuple(flat([s[0][i] for s in steps]) for i in range(6))
-        K_all = {k: flat([s[1][k] for s in steps]) for k in steps[0][1]}
+        K_all = {k: flat([s[1][k] for s in steps]) for k in steps[0][1] if k != "geo"}  # (geo: world-model input only)
         C = flat([s[2] for s in steps])
         cmd_all = cmd.unsqueeze(0).expand(HZ, -1, -1).flatten(0, 1)
         xi_all = xi_n.unsqueeze(0).expand(HZ, -1, -1).flatten(0, 1)

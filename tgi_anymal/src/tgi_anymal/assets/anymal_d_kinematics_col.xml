@@ -1,0 +1,266 @@
+<mujoco model="anymal">
+  <compiler angle="radian" />
+
+  <worldbody>
+    <body name="base">
+      <freejoint name="root" />
+      <inertial pos="-0.02148 0.00173 -0.04417" quat="0.0252505 0.687519 0.0229874 0.725363" mass="8.27629" diaginertia="0.472842 0.464641 0.0606721" />
+      <geom size="0.447 0.08075 0.178" pos="0 0 0.066" type="box" />
+      <body name="body_top" pos="0 0 0.144" />
+      <body name="top_shell">
+        <inertial pos="-0.0226 -0.00027 0.07263" quat="0.000252856 0.696858 0.000787473 0.717208" mass="0.32381" diaginertia="0.0208751 0.017611 0.00389785" />
+      </body>
+      <body name="bottom_shell">
+        <inertial pos="9e-05 0 -0.0705" quat="0.0001173 0.707947 -0.000114036 0.706266" mass="0.73783" diaginertia="0.0407584 0.0345773 0.00724233" />
+      </body>
+      <body name="face_front" pos="0.4087 0 0.0205">
+        <inertial pos="-0.0362 0.00223 -0.02808" quat="0.990072 0.00195857 -0.129745 0.0540305" mass="0.48634" diaginertia="0.000791021 0.00076565 0.000539212" />
+        <body name="depth_camera_front_lower_camera" pos="-0.04028 -0.025 -0.08051" quat="0.866025 0 0.5 0">
+          <inertial pos="-0.00362 -0.01787 -0.00011" quat="0.707362 0.70665 -0.000465889 0.0168906" mass="0.06355" diaginertia="6.84506e-05 6.66969e-05 5.24754e-06" />
+          <body name="depth_camera_front_lower_camera_parent" quat="0 1 0 0">
+            <body name="depth_camera_front_lower_depth_frame">
+              <body name="depth_camera_front_lower_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+            </body>
+          </body>
+        </body>
+        <body name="depth_camera_front_upper_camera" pos="-0.00993 -0.025 -0.04096" quat="0.991445 0 0.130526 0">
+          <inertial pos="-0.00362 -0.01787 -0.00011" quat="0.707362 0.70665 -0.000465889 0.0168906" mass="0.06355" diaginertia="6.84506e-05 6.66969e-05 5.24754e-06" />
+          <body name="depth_camera_front_upper_camera_parent" quat="0 1 0 0">
+            <body name="depth_camera_front_upper_depth_frame">
+              <body name="depth_camera_front_upper_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+            </body>
+          </body>
+        </body>
+        <body name="wide_angle_camera_front_camera">
+          <body name="wide_angle_camera_front_camera_parent" pos="-0.00421 0 0" quat="0.5 -0.5 0.5 -0.5" />
+        </body>
+        <body name="face_shell_front">
+          <inertial pos="0.01446 4e-05 -0.01698" quat="0.708153 0.704444 -0.0338082 0.0336807" mass="0.1369" diaginertia="0.00102556 0.000567927 0.000515762" />
+        </body>
+      </body>
+      <body name="face_rear" pos="-0.4087 0 0.0205" quat="0 0 0 1">
+        <inertial pos="-0.0362 0.00223 -0.02808" quat="0.990072 0.00195857 -0.129745 0.0540305" mass="0.48634" diaginertia="0.000791021 0.00076565 0.000539212" />
+        <body name="depth_camera_rear_lower_camera" pos="-0.04028 -0.025 -0.08051" quat="0.866025 0 0.5 0">
+          <inertial pos="-0.00362 -0.01787 -0.00011" quat="0.707362 0.70665 -0.000465889 0.0168906" mass="0.06355" diaginertia="6.84506e-05 6.66969e-05 5.24754e-06" />
+          <body name="depth_camera_rear_lower_camera_parent" quat="0 1 0 0">
+            <body name="depth_camera_rear_lower_depth_frame">
+              <body name="depth_camera_rear_lower_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+            </body>
+          </body>
+        </body>
+        <body name="depth_camera_rear_upper_camera" pos="-0.00993 -0.025 -0.04096" quat="0.991445 0 0.130526 0">
+          <inertial pos="-0.00362 -0.01787 -0.00011" quat="0.707362 0.70665 -0.000465889 0.0168906" mass="0.06355" diaginertia="6.84506e-05 6.66969e-05 5.24754e-06" />
+          <body name="depth_camera_rear_upper_camera_parent" quat="0 1 0 0">
+            <body name="depth_camera_rear_upper_depth_frame">
+              <body name="depth_camera_rear_upper_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+            </body>
+          </body>
+        </body>
+        <body name="wide_angle_camera_rear_camera">
+          <body name="wide_angle_camera_rear_camera_parent" pos="-0.00421 0 0" quat="0.5 -0.5 0.5 -0.5" />
+        </body>
+        <body name="face_shell_rear">
+          <inertial pos="0.01446 4e-05 -0.01698" quat="0.708153 0.704444 -0.0338082 0.0336807" mass="0.1369" diaginertia="0.00102556 0.000567927 0.000515762" />
+        </body>
+      </body>
+      <body name="battery">
+        <inertial pos="-0.00067 0.00023 -0.02212" quat="-0.0011032 0.707499 0.000694763 0.706713" mass="5.51206" diaginertia="0.0745937 0.0719934 0.00745484" />
+      </body>
+      <body name="docking_socket" pos="0.26132 0 -0.06205">
+        <inertial pos="0.00606 0 0.01903" quat="0.0013145 0.722264 0.00069976 0.691616" mass="0.21905" diaginertia="0.000220036 0.000155851 0.000106432" />
+      </body>
+      <body name="hbc_receiver" pos="-0.0435 0 0.144">
+        <inertial pos="-0.00144 -0.00075 -0.01143" quat="0.500655 0.502341 -0.481948 0.514513" mass="0.60727" diaginertia="0.00217262 0.00172124 0.00100488" />
+      </body>
+      <body name="imu_link" pos="-0.25565 0.00255 0.07672" quat="0 0 1 0" />
+      <body name="depth_camera_left_camera" pos="-0.025 0.0923 0.0123" quat="0.660141 -0.253404 0.253404 0.660141">
+        <inertial pos="-0.01352 -0.02667 -0.00198" quat="0.50656 0.523878 -0.473215 0.494992" mass="0.11196" diaginertia="0.00012182 0.000113676 2.36836e-05" />
+        <body name="depth_camera_left_camera_parent">
+          <body name="depth_camera_left_depth_frame">
+            <body name="depth_camera_left_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+          </body>
+        </body>
+      </body>
+      <body name="depth_camera_right_camera" pos="0.025 -0.0923 0.0123" quat="0.660141 0.253404 0.253404 -0.660141">
+        <inertial pos="-0.01352 -0.02667 -0.00198" quat="0.50656 0.523878 -0.473215 0.494992" mass="0.11196" diaginertia="0.00012182 0.000113676 2.36836e-05" />
+        <body name="depth_camera_right_camera_parent">
+          <body name="depth_camera_right_depth_frame">
+            <body name="depth_camera_right_depth_optical_frame" quat="0.5 -0.5 0.5 -0.5" />
+          </body>
+        </body>
+      </body>
+      <body name="lidar_parent" pos="-0.31 0 0.1585" quat="0.707107 0 0 0.707107">
+        <body name="lidar" quat="0.707107 0 0 0.707107">
+          <inertial pos="-0.00371 -0.00326 -0.00485" quat="0.42062 0.733552 -0.0042101 0.53382" mass="0.9017" diaginertia="0.00144936 0.00113299 0.00100818" />
+        </body>
+      </body>
+      <body name="LF_HAA_drive" pos="0.304 0.109 0">
+        <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+        <body name="LF_HIP">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+          <joint name="LF_HAA" range="-0.785398 0.610865" actuatorfrcrange="-80 80" axis="1 0 0" />
+          <body name="LF_hip_fixed">
+            <inertial pos="0.03505 -0.00125 0" quat="0.502661 0.502771 0.497245 0.497294" mass="0.36386" diaginertia="0.000553902 0.000438886 0.000236432" />
+            <body name="LF_HFE_output" pos="0.069 0.006 0" quat="0.707107 0 0 -0.707107">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+              <body name="LF_THIGH">
+                <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                <joint name="LF_HFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="-1 0 0" />
+                <body name="LF_HFE_drive">
+                  <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                  <body name="LF_thigh_fixed" quat="0.707107 0 0 0.707107">
+                    <inertial pos="-0.00041 0.09155 -0.13317" quat="0.780065 0.0330537 -0.0410243 0.623477" mass="1.10098" diaginertia="0.0165045 0.0153689 0.00242826" />
+                    <geom size="0.0465 0.0315 0.1425" pos="0 0.09513 -0.1425" type="box" />
+                    <geom size="0.07 0.081565" pos="0 0.125065 -0.285" quat="0.707107 0.707107 0 0" type="cylinder" />
+                    <body name="LF_KFE_drive" pos="0 0.1805 -0.285" quat="0.707107 0 0 0.707107">
+                      <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                      <body name="LF_SHANK">
+                        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                        <joint name="LF_KFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="1 0 0" />
+                        <body name="LF_shank_fixed" quat="0.707107 0 0 -0.707107">
+                          <inertial pos="0.02186 0.00895 0.00042" quat="0.497594 0.511875 0.499612 0.490685" mass="0.49854" diaginertia="0.00167013 0.00127297 0.000548593" />
+                          <geom size="0.0175 0.19786" pos="0.1 0.00535885 -0.164217" type="cylinder" />
+                          <body name="LF_FOOT" pos="0.1 0.02225 -0.39246">
+        <site name="LF_FOOT_site" pos="0.0 -0.008141153063699788 0.03038319686592264" size="0.031455" />
+                            <inertial pos="0 -0.01559 0.15004" quat="0.999868 0.0162581 0 0" mass="0.29644" diaginertia="0.00514263 0.00513691 0.000113592" />
+                            <geom size="0.031455" pos="0 -0.00814115 0.0303832" />
+                          </body>
+                        <geom name="LF_shank_collision" type="capsule" size="0.0250" contype="0" conaffinity="0" group="3" fromto="0.10000 0.00536 -0.01422 0.10000 0.00536 -0.32922" /></body>
+                      </body>
+                    </body>
+                  <geom name="LF_thigh_collision" type="capsule" size="0.0450" contype="0" conaffinity="0" group="3" fromto="0.00000 0.09513 -0.03250 0.00000 0.09513 -0.24250" /><geom name="LF_knee_collision" type="capsule" size="0.0700" contype="0" conaffinity="0" group="3" fromto="0.00000 0.08507 -0.28500 0.00000 0.16507 -0.28500" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="RF_HAA_drive" pos="0.304 -0.109 0">
+        <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+        <body name="RF_HIP">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+          <joint name="RF_HAA" range="-0.610865 0.785398" actuatorfrcrange="-80 80" axis="1 0 0" />
+          <body name="RF_hip_fixed">
+            <inertial pos="0.03505 0.00125 0" quat="0.497294 0.497245 0.502771 0.502661" mass="0.36386" diaginertia="0.000553902 0.000438886 0.000236432" />
+            <body name="RF_HFE_output" pos="0.069 -0.006 0" quat="0.707107 0 0 0.707107">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+              <body name="RF_THIGH">
+                <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                <joint name="RF_HFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="1 0 0" />
+                <body name="RF_HFE_drive">
+                  <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                  <body name="RF_thigh_fixed" quat="0.707107 0 0 -0.707107">
+                    <inertial pos="-0.00041 -0.09155 -0.13317" quat="0.623477 -0.0410243 0.0330537 0.780065" mass="1.10098" diaginertia="0.0165045 0.0153689 0.00242826" />
+                    <geom size="0.0465 0.0315 0.1425" pos="0 -0.09513 -0.1425" type="box" />
+                    <geom size="0.07 0.081565" pos="0 -0.125065 -0.285" quat="0.707107 0.707107 0 0" type="cylinder" />
+                    <body name="RF_KFE_drive" pos="0 -0.1805 -0.285" quat="0.707107 0 0 -0.707107">
+                      <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                      <body name="RF_SHANK">
+                        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                        <joint name="RF_KFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="-1 0 0" />
+                        <body name="RF_shank_fixed" quat="0.707107 0 0 0.707107">
+                          <inertial pos="0.02186 -0.00895 0.00042" quat="0.490685 0.499612 0.511875 0.497594" mass="0.49854" diaginertia="0.00167013 0.00127297 0.000548593" />
+                          <geom size="0.0175 0.19786" pos="0.1 -0.00535885 -0.164217" type="cylinder" />
+                          <body name="RF_FOOT" pos="0.1 -0.02225 -0.39246">
+        <site name="RF_FOOT_site" pos="0.0 0.008141153063699788 0.03038319686592264" size="0.031455" />
+                            <inertial pos="0 0.01559 0.15004" quat="0.999868 -0.0162581 0 0" mass="0.29644" diaginertia="0.00514263 0.00513691 0.000113592" />
+                            <geom size="0.031455" pos="0 0.00814115 0.0303832" />
+                          </body>
+                        <geom name="RF_shank_collision" type="capsule" size="0.0250" contype="0" conaffinity="0" group="3" fromto="0.10000 -0.00536 -0.01422 0.10000 -0.00536 -0.32922" /></body>
+                      </body>
+                    </body>
+                  <geom name="RF_thigh_collision" type="capsule" size="0.0450" contype="0" conaffinity="0" group="3" fromto="0.00000 -0.09513 -0.03250 0.00000 -0.09513 -0.24250" /><geom name="RF_knee_collision" type="capsule" size="0.0700" contype="0" conaffinity="0" group="3" fromto="0.00000 -0.08507 -0.28500 0.00000 -0.16507 -0.28500" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="LH_HAA_drive" pos="-0.304 0.109 0" quat="0 0 0 -1">
+        <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+        <body name="LH_HIP">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+          <joint name="LH_HAA" range="-0.785398 0.610865" actuatorfrcrange="-80 80" axis="-1 0 0" />
+          <body name="LH_hip_fixed" quat="0 0 0 -1">
+            <inertial pos="-0.03505 -0.00125 0" quat="0.497245 0.497294 0.502661 0.502771" mass="0.36386" diaginertia="0.000553902 0.000438886 0.000236432" />
+            <body name="LH_HFE_output" pos="-0.069 0.006 0" quat="0.707107 0 0 -0.707107">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+              <body name="LH_THIGH">
+                <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                <joint name="LH_HFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="-1 0 0" />
+                <body name="LH_HFE_drive">
+                  <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                  <body name="LH_thigh_fixed" quat="0.707107 0 0 0.707107">
+                    <inertial pos="0.00041 0.09155 -0.13317" quat="0.623477 0.0410243 -0.0330537 0.780065" mass="1.10098" diaginertia="0.0165045 0.0153689 0.00242826" />
+                    <geom size="0.0465 0.0315 0.1425" pos="0 0.09513 -0.1425" type="box" />
+                    <geom size="0.07 0.081565" pos="0 0.125065 -0.285" quat="0.707107 0.707107 0 0" type="cylinder" />
+                    <body name="LH_KFE_drive" pos="0 0.1805 -0.285" quat="0.707107 0 0 0.707107">
+                      <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                      <body name="LH_SHANK">
+                        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                        <joint name="LH_KFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="1 0 0" />
+                        <body name="LH_shank_fixed" quat="0.707107 0 0 -0.707107">
+                          <inertial pos="-0.02186 0.00895 0.00042" quat="0.499612 0.490685 0.497594 0.511875" mass="0.49854" diaginertia="0.00167013 0.00127297 0.000548593" />
+                          <geom size="0.0175 0.19786" pos="-0.1 0.00535885 -0.164217" type="cylinder" />
+                          <body name="LH_FOOT" pos="-0.1 0.02225 -0.39246">
+        <site name="LH_FOOT_site" pos="0.0 -0.008141153063699788 0.03038319686592264" size="0.031455" />
+                            <inertial pos="0 -0.01559 0.15004" quat="0.999868 0.0162581 0 0" mass="0.29644" diaginertia="0.00514263 0.00513691 0.000113592" />
+                            <geom size="0.031455" pos="0 -0.00814115 0.0303832" />
+                          </body>
+                        <geom name="LH_shank_collision" type="capsule" size="0.0250" contype="0" conaffinity="0" group="3" fromto="-0.10000 0.00536 -0.01422 -0.10000 0.00536 -0.32922" /></body>
+                      </body>
+                    </body>
+                  <geom name="LH_thigh_collision" type="capsule" size="0.0450" contype="0" conaffinity="0" group="3" fromto="0.00000 0.09513 -0.03250 0.00000 0.09513 -0.24250" /><geom name="LH_knee_collision" type="capsule" size="0.0700" contype="0" conaffinity="0" group="3" fromto="0.00000 0.08507 -0.28500 0.00000 0.16507 -0.28500" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="RH_HAA_drive" pos="-0.304 -0.109 0" quat="0 0 0 -1">
+        <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+        <body name="RH_HIP">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+          <joint name="RH_HAA" range="-0.610865 0.785398" actuatorfrcrange="-80 80" axis="-1 0 0" />
+          <body name="RH_hip_fixed" quat="0 0 0 -1">
+            <inertial pos="-0.03505 0.00125 0" quat="0.502771 0.502661 0.497294 0.497245" mass="0.36386" diaginertia="0.000553902 0.000438886 0.000236432" />
+            <body name="RH_HFE_output" pos="-0.069 -0.006 0" quat="0.707107 0 0 0.707107">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+              <body name="RH_THIGH">
+                <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                <joint name="RH_HFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="1 0 0" />
+                <body name="RH_HFE_drive">
+                  <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                  <body name="RH_thigh_fixed" quat="0.707107 0 0 -0.707107">
+                    <inertial pos="0.00041 -0.09155 -0.13317" quat="0.780065 -0.0330537 0.0410243 0.623477" mass="1.10098" diaginertia="0.0165045 0.0153689 0.00242826" />
+                    <geom size="0.0465 0.0315 0.1425" pos="0 -0.09513 -0.1425" type="box" />
+                    <geom size="0.07 0.081565" pos="0 -0.125065 -0.285" quat="0.707107 0.707107 0 0" type="cylinder" />
+                    <body name="RH_KFE_drive" pos="0 -0.1805 -0.285" quat="0.707107 0 0 -0.707107">
+                      <inertial pos="-0.05783 -0.00014 0.00036" quat="0.562891 0.494839 -0.37713 0.544114" mass="2.01511" diaginertia="0.0035778 0.00332341 0.00315867" />
+                      <body name="RH_SHANK">
+                        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06" />
+                        <joint name="RH_KFE" range="-9.42478 9.42478" actuatorfrcrange="-80 80" axis="-1 0 0" />
+                        <body name="RH_shank_fixed" quat="0.707107 0 0 0.707107">
+                          <inertial pos="-0.02186 -0.00895 0.00042" quat="0.511875 0.497594 0.490685 0.499612" mass="0.49854" diaginertia="0.00167013 0.00127297 0.000548593" />
+                          <geom size="0.0175 0.19786" pos="-0.1 -0.00535885 -0.164217" type="cylinder" />
+                          <body name="RH_FOOT" pos="-0.1 -0.02225 -0.39246">
+        <site name="RH_FOOT_site" pos="0.0 0.008141153063699788 0.03038319686592264" size="0.031455" />
+                            <inertial pos="0 0.01559 0.15004" quat="0.999868 -0.0162581 0 0" mass="0.29644" diaginertia="0.00514263 0.00513691 0.000113592" />
+                            <geom size="0.031455" pos="0 0.00814115 0.0303832" />
+                          </body>
+                        <geom name="RH_shank_collision" type="capsule" size="0.0250" contype="0" conaffinity="0" group="3" fromto="-0.10000 -0.00536 -0.01422 -0.10000 -0.00536 -0.32922" /></body>
+                      </body>
+                    </body>
+                  <geom name="RH_thigh_collision" type="capsule" size="0.0450" contype="0" conaffinity="0" group="3" fromto="0.00000 -0.09513 -0.03250 0.00000 -0.09513 -0.24250" /><geom name="RH_knee_collision" type="capsule" size="0.0700" contype="0" conaffinity="0" group="3" fromto="0.00000 -0.08507 -0.28500 0.00000 -0.16507 -0.28500" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="hatch" pos="0.14253 0 0.092">
+        <inertial pos="0.06631 0 0.01119" quat="0.0183855 0.707819 0.0055271 0.706133" mass="0.09653" diaginertia="0.00162353 0.00144901 0.000191307" />
+      </body>
+    <geom name="base0_collision" type="sphere" size="0.0900" contype="0" conaffinity="0" group="3" pos="-0.36000 0.00000 -0.02200" /><geom name="base1_collision" type="sphere" size="0.0900" contype="0" conaffinity="0" group="3" pos="-0.18000 0.00000 -0.02200" /><geom name="base2_collision" type="sphere" size="0.0900" contype="0" conaffinity="0" group="3" pos="0.00000 0.00000 -0.02200" /><geom name="base3_collision" type="sphere" size="0.0900" contype="0" conaffinity="0" group="3" pos="0.18000 0.00000 -0.02200" /><geom name="base4_collision" type="sphere" size="0.0900" contype="0" conaffinity="0" group="3" pos="0.36000 0.00000 -0.02200" /></body>
+  </worldbody>
+</mujoco>

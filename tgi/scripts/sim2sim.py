@@ -4,7 +4,7 @@ Own 500 Hz PD loop, actuation latency, ONNX inference and ray-cast perception. C
 ``stairs:rise``, ``blocks:max_height``, ``stones:gap[:size]``, ``fpmstones:difficulty``, ``drop:h``, ``pit:h``,
 ``noise:h[:cell]``, ``slope``. A course is crossed if the robot is upright and past it.
 
-    python scripts/sim2sim.py --export_dir logs/<run>/export_100000 --terrains stairs:0.20 fpmstones:0.6 --repeats 2
+    python scripts/sim2sim.py --export_dir logs/<run>/export_040000 --terrains stairs:0.20 fpmstones:0.6 --repeats 2
 """
 
 from __future__ import annotations

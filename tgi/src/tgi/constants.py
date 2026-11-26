@@ -2,6 +2,12 @@
 
 import os
 
+# the contact bodies (the feet) whose net contact force the simulator reports and the world model predicts, and the
+# sole's half size (centre of pressure bounds, m)
+CONTACT_BODIES = ("left_ankle_roll_link", "right_ankle_roll_link")
+NUM_CB = len(CONTACT_BODIES)
+SOLE_HALF = (0.093, 0.04)  # half length (x), half width (y) of the sole around the foot site
+
 NUM_J = 29
 STATE_DIM = 3 + 4 + 3 + 3 + NUM_J + NUM_J  # p, quat(wxyz), v_w, w_w, q, qd
 # foot friction, torso com offset(3), encoder bias(29), joint friction loss, joint damping, armature scale,

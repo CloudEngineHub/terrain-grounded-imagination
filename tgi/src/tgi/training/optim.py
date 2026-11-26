@@ -9,14 +9,16 @@ import torch.nn as nn
 
 
 class MuonAdam:
-    """Muon on the hidden weight matrices (both sides >= 128), fused Adam on all other parameters, as one optimizer.
+    """Muon on the weight matrices (both sides >= min_dim), fused Adam on all other parameters, as one optimizer.
 
     Muon's learning rate is RMS-matched to AdamW (``adjust_lr_fn="match_rms_adamw"``), so both share one schedule.
     """
 
-    def __init__(self, module: nn.Module, lr: float, betas=(0.9, 0.999), muon_lr_mult: float = 1.0):
+    def __init__(self, module: nn.Module, lr: float, betas=(0.9, 0.999), muon_lr_mult: float = 1.0, min_dim: int = 128):
+        """min_dim: smallest side of a weight matrix that goes to Muon (1: every matrix, e.g. also the output layer;
+        vectors - biases, norm gains - always stay on Adam, Muon is defined for matrices only)."""
         params = list(module.parameters())
-        self.matrices = [p for p in params if p.ndim == 2 and min(p.shape) >= 128]
+        self.matrices = [p for p in params if p.ndim == 2 and min(p.shape) >= min_dim]
         ids = {id(p) for p in self.matrices}
         self.others = [p for p in params if id(p) not in ids]
         self.muon_lr_mult = muon_lr_mult
@@ -60,9 +62,10 @@ class MuonAdam:
 Optimizer = torch.optim.Adam | MuonAdam
 
 
-def make_optimizer(kind: str, module: nn.Module, lr: float, betas=(0.9, 0.999), muon_lr_mult: float = 1.0) -> Optimizer:
+def make_optimizer(kind: str, module: nn.Module, lr: float, betas=(0.9, 0.999), muon_lr_mult: float = 1.0,
+                   muon_min_dim: int = 128) -> Optimizer:
     if kind == "muon":
-        return MuonAdam(module, lr, betas, muon_lr_mult)
+        return MuonAdam(module, lr, betas, muon_lr_mult, muon_min_dim)
     return torch.optim.Adam(module.parameters(), lr=lr, betas=betas, fused=True)
 
 

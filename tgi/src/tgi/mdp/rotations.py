@@ -19,22 +19,6 @@ def quat_to_mat(q: torch.Tensor) -> torch.Tensor:
     ).reshape(q.shape[:-1] + (3, 3))  # fmt: skip
 
 
-def mat_to_quat(R: torch.Tensor) -> torch.Tensor:
-    """Rotation matrix -> wxyz quaternion (w >= 0)."""
-    m00, m01, m02 = R[..., 0, 0], R[..., 0, 1], R[..., 0, 2]
-    m10, m11, m12 = R[..., 1, 0], R[..., 1, 1], R[..., 1, 2]
-    m20, m21, m22 = R[..., 2, 0], R[..., 2, 1], R[..., 2, 2]
-    qw = torch.sqrt((1 + m00 + m11 + m22).clamp(min=1e-10)) / 2
-    qx = torch.sqrt((1 + m00 - m11 - m22).clamp(min=1e-10)) / 2
-    qy = torch.sqrt((1 - m00 + m11 - m22).clamp(min=1e-10)) / 2
-    qz = torch.sqrt((1 - m00 - m11 + m22).clamp(min=1e-10)) / 2
-    qx = torch.copysign(qx, m21 - m12)
-    qy = torch.copysign(qy, m02 - m20)
-    qz = torch.copysign(qz, m10 - m01)
-    q = torch.stack((qw, qx, qy, qz), -1)
-    return q / q.norm(dim=-1, keepdim=True)
-
-
 def skew(v: torch.Tensor) -> torch.Tensor:
     x, y, z = v.unbind(-1)
     o = torch.zeros_like(x)
@@ -72,8 +56,3 @@ def yaw_mat(R: torch.Tensor) -> torch.Tensor:
 
 def mat_to_6d(R: torch.Tensor) -> torch.Tensor:
     return R[..., :, :2].flatten(-2)
-
-
-def axis_angle_mat(axis: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:
-    """Rotation about a fixed unit axis (3,) by angle (...,)."""
-    return so3_exp(axis * angle.unsqueeze(-1))

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tgi-anymal"
+version = "1.1.0"
+description = "Terrain Grounded Imagination for ANYmal-D: quadruped locomotion on sparse terrain and parkour obstacles through a world model with 3D terrain contacts and contact forces."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Matthias Heyrman" }, { name = "Marco Hutter" }]
+# Isaac Lab 3 (torch, warp, newton, trimesh, isaaclab_assets, isaaclab_tasks) comes from the Isaac Lab environment;
+# install ../fpm first (README)
+dependencies = ["mujoco>=3.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tgi_anymal = ["assets/*.xml"]

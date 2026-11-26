@@ -52,7 +52,7 @@ def isaac_terrains_cfg(stones_share: float = 0.6, num_cols: int = 30, pit_step: 
 
 
 def make_isaac_env_cfg(num_envs: int, seed: int = 0, stones_share: float = 0.6, episode_s: float = 20.0,
-                       pit_step: float = 0.0):
+                       pit_step: float = 0.0, phys: str = ""):
     from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg
     from isaaclab.managers import ObservationGroupCfg, ObservationTermCfg, TerminationTermCfg
     from isaaclab.utils import configclass
@@ -66,6 +66,19 @@ def make_isaac_env_cfg(num_envs: int, seed: int = 0, stones_share: float = 0.6, 
     cfg.seed = seed
     cfg.episode_length_s = episode_s
     cfg.sim.physics = RoughPhysicsCfg().newton_mjwarp
+    # --phys: solver / collision budgets ("num_substeps" on the physics config itself; "contacts_per_env" sets
+    # rigid_contact_max per robot). The auto-sized buffers (5.9 M collision slots, njmax 1000) cost the simulator
+    # ~1.45 GB at 4096 robots; a robot uses about 60 contacts and at most about 290 constraint rows
+    for kv in filter(None, phys.split(",")):
+        k, v = kv.split("=")
+        v = int(v) if v.lstrip("-").isdigit() else float(v)
+        if k == "contacts_per_env":
+            k, v = "rigid_contact_max", int(v) * num_envs
+        ph = cfg.sim.physics
+        tgt = ph if k == "num_substeps" else ph.collision_cfg if k in ("rigid_contact_max", "max_triangle_pairs") else ph.solver_cfg
+        assert hasattr(tgt, k), k
+        setattr(tgt, k, v)
+        print(f"physics override: {k} = {v}", flush=True)
     # the base env's G1, with collision on the capsules (scripts/convert_g1_usd.py)
     assert os.path.exists(G1_NEWTON_USD), f"{G1_NEWTON_USD} missing: run scripts/convert_g1_usd.py once (README)"
     cfg.scene.robot = cfg.scene.robot.replace(spawn=cfg.scene.robot.spawn.replace(usd_path=G1_NEWTON_USD))

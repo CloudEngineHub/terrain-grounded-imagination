@@ -50,9 +50,6 @@ SCAN_RES = 0.05
 SCAN_SIZE = (1.6, 1.0)
 SCAN_OFFSET = 0.5
 FOOTHOLD_SCAN_DIM = 2 * (2 + PATCH_N**2)
-# full height scan: the base env's height_scan grid (1.6 x 1.0 m at 0.05 m, y outer, x inner)
-FULL_SCAN_NX, FULL_SCAN_NY = int(round(SCAN_SIZE[0] / SCAN_RES)) + 1, int(round(SCAN_SIZE[1] / SCAN_RES)) + 1
-FULL_SCAN_DIM = FULL_SCAN_NX * FULL_SCAN_NY
 POLICY_OBS_DIM = PROPRIO_DIM + FOOTHOLD_SCAN_DIM
 BOOTSTRAP_FOOTHOLDS = ((0.0, 0.1), (0.0, -0.1))
 
@@ -124,8 +121,7 @@ class FootholdScan:
         ox, oy = torch.meshgrid(k, k, indexing="ij")
         self.off_x, self.off_y = ox.flatten(), oy.flatten()
 
-    def __call__(self, p, R, torso_p, torso_R, footholds_root, xy_drift=None, z_drift=None, noise: bool = True,
-                 return_points: bool = False):
+    def __call__(self, p, R, torso_p, torso_R, footholds_root, xy_drift=None, z_drift=None, noise: bool = True):
         """footholds_root: (..., 2, 2) in the pelvis frame. Returns (..., 102)."""
         fb = torch.cat((footholds_root, torch.zeros_like(footholds_root[..., :1])), -1)
         feet_w = p.unsqueeze(-2) + (R.unsqueeze(-3) @ fb.unsqueeze(-1)).squeeze(-1)
@@ -148,45 +144,7 @@ class FootholdScan:
         out = torch.cat((footholds_root, h), -1)  # (..., 2, 2 + 49)
         if noise:
             out = out + _u(out, SCAN_NOISE)
-        out = out.clamp(-1.0, 1.0).flatten(-2)
-        if return_points:
-            return out, pts, hz
-        return out
-
-
-class FullHeightScan:
-    """The whole torso-mounted, yaw-aligned height grid (the base env's ``height_scan`` term) instead of FPM-gated
-    foothold patches: clip(torso_z - terrain_z - 0.5 + noise, -1, 1) on 33 x 21 nodes, y outer / x inner."""
-
-    def __init__(self, hm, device: str):
-        self.hm = hm
-        x = torch.arange(FULL_SCAN_NX, device=device).float() * SCAN_RES - SCAN_SIZE[0] / 2
-        y = torch.arange(FULL_SCAN_NY, device=device).float() * SCAN_RES - SCAN_SIZE[1] / 2
-        gx, gy = torch.meshgrid(x, y, indexing="xy")  # (ny, nx): Isaac Lab's "xy" ordering
-        self.grid = torch.stack((gx.flatten(), gy.flatten()), -1)
-
-    def __call__(self, p, R, torso_p, torso_R, footholds_root=None, xy_drift=None, z_drift=None, noise: bool = True,
-                 return_points: bool = False):
-        g = self.grid
-        if xy_drift is not None:  # sensor-frame shift, as the foothold scan's drift
-            g = g + xy_drift.unsqueeze(-2)
-        Y = yaw_mat(torso_R)[..., :2, :2].unsqueeze(-3)
-        pts = torso_p[..., None, :2] + (Y @ g.unsqueeze(-1)).squeeze(-1)
-        hz = self.hm.query_nearest(pts)
-        h = torso_p[..., 2, None] - hz - SCAN_OFFSET
-        if z_drift is not None:
-            h = h + z_drift[..., None]
-        if noise:
-            h = h + _u(h, SCAN_NOISE)
-        out = h.clamp(-1.0, 1.0)
-        if return_points:
-            return out, pts, hz
-        return out
-
-
-def mirror_full_scan(e: torch.Tensor) -> torch.Tensor:
-    """Mirror the full height scan left/right: flip the grid along y."""
-    return e.reshape(*e.shape[:-1], FULL_SCAN_NY, FULL_SCAN_NX).flip(-2).reshape(*e.shape[:-1], FULL_SCAN_DIM)
+        return out.clamp(-1.0, 1.0).flatten(-2)
 
 
 # Joint permutation and signs from the base env's fpm/mdp/symmetry.py (Isaac joint order).

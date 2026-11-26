@@ -37,28 +37,7 @@ class HeightMap:
         fu, fv = u - i0, v - j0
         h00, h10 = self.h[i0, j0], self.h[i0 + 1, j0]
         h01, h11 = self.h[i0, j0 + 1], self.h[i0 + 1, j0 + 1]
-        out = (h00 * (1 - fu) + h10 * fu) * (1 - fv) + (h01 * (1 - fu) + h11 * fu) * fv
-        hb = getattr(self, "h_blur", None)
-        if hb is None:
-            return out
-        # exact heights forward, gradient (w.r.t. xy) from the Gaussian-smoothed terrain
-        b = (hb[i0, j0] * (1 - fu) + hb[i0 + 1, j0] * fu) * (1 - fv) + (hb[i0, j0 + 1] * (1 - fu) + hb[i0 + 1, j0 + 1] * fu) * fv
-        return b + (out - b).detach()
-
-    def set_grad_blur(self, sigma: float):
-        """Take query() gradients from the terrain blurred by a Gaussian of std ``sigma`` (m); 0 disables."""
-        import torch.nn.functional as F
-
-        if sigma <= 0:
-            self.h_blur = None
-            return
-        r = max(1, int(round(3 * sigma / self.res)))
-        x = torch.arange(-r, r + 1, device=self.h.device, dtype=torch.float32) * self.res
-        g = torch.exp(-0.5 * (x / sigma) ** 2)
-        g = (g / g.sum()).to(self.h.dtype)
-        s = F.conv2d(F.pad(self.h[None, None], (0, 0, r, r), mode="replicate"), g.view(1, 1, -1, 1))
-        s = F.conv2d(F.pad(s, (r, r, 0, 0), mode="replicate"), g.view(1, 1, 1, -1))
-        self.h_blur = s[0, 0].contiguous()
+        return (h00 * (1 - fu) + h10 * fu) * (1 - fv) + (h01 * (1 - fu) + h11 * fu) * fv
 
     def build_support_field(self, window: float = 0.5, hole_depth: float = 0.25, sigma: float = 0.05):
         """Smooth map in [0, 1]: 1 on supportable surface (within ``hole_depth`` of the local top surface in a
@@ -67,16 +46,53 @@ class HeightMap:
         import torch.nn.functional as F
 
         k = max(3, int(round(window / self.res)) | 1)
-        h = self.h[None, None]
+        h = self.h[None, None].cpu()  # on the CPU: the pooling and convolutions of a large map peak at several GB
         local_top = F.max_pool2d(h, k, stride=1, padding=k // 2)
         solid = (h > local_top - hole_depth).float()
+        lava = getattr(self, "lava", None)
+        if lava is not None:  # lava floors are never support
+            solid = solid * (1.0 - lava[None, None].cpu())
         r = max(1, int(round(3 * sigma / self.res)))
         x = torch.arange(-r, r + 1, device=h.device, dtype=torch.float32) * self.res
         g = torch.exp(-0.5 * (x / sigma) ** 2)
         g = g / g.sum()
         s = F.conv2d(F.pad(solid, (0, 0, r, r), mode="replicate"), g.view(1, 1, -1, 1))
         s = F.conv2d(F.pad(s, (r, r, 0, 0), mode="replicate"), g.view(1, 1, 1, -1))
-        self.support = s[0, 0]
+        self.support = s[0, 0].to(self.h.device)
+
+    def build_edge_field(self, dz: float = 0.03, radius: float = 0.04):
+        """Map in [0, 1]: 1 where the height changes by more than ``dz`` within ``radius`` (step nosings, stone
+        rims); queried bilinearly, so its gradient pushes the soles off edges toward the middle of treads."""
+        import torch.nn.functional as F
+
+        k = 2 * max(1, int(round(radius / self.res))) + 1
+        h = self.h[None, None].cpu()
+        hi = F.max_pool2d(h, k, stride=1, padding=k // 2)
+        lo = -F.max_pool2d(-h, k, stride=1, padding=k // 2)
+        self.edge = ((hi - lo) > dz).float()[0, 0].to(self.h.device)
+
+    def query_edge(self, xy: torch.Tensor) -> torch.Tensor:
+        """Bilinear edge value at world xy (0 without an edge map)."""
+        e = getattr(self, "edge", None)
+        if e is None:
+            return torch.zeros_like(xy[..., 0])
+        u = ((xy[..., 0] - self.ox) / self.res).clamp(0, self.nx - 1.001)
+        v = ((xy[..., 1] - self.oy) / self.res).clamp(0, self.ny - 1.001)
+        i0, j0 = u.floor().long(), v.floor().long()
+        fu, fv = u - i0, v - j0
+        return (e[i0, j0] * (1 - fu) + e[i0 + 1, j0] * fu) * (1 - fv) + (e[i0, j0 + 1] * (1 - fu) + e[i0 + 1, j0 + 1] * fu) * fv
+
+    def query_lava(self, xy: torch.Tensor) -> torch.Tensor:
+        """Bilinear lava value at world xy (0 without a lava map)."""
+        lava = getattr(self, "lava", None)
+        if lava is None:
+            return torch.zeros_like(xy[..., 0])
+        u = ((xy[..., 0] - self.ox) / self.res).clamp(0, self.nx - 1.001)
+        v = ((xy[..., 1] - self.oy) / self.res).clamp(0, self.ny - 1.001)
+        i0, j0 = u.floor().long(), v.floor().long()
+        fu, fv = u - i0, v - j0
+        s = lava
+        return (s[i0, j0] * (1 - fu) + s[i0 + 1, j0] * fu) * (1 - fv) + (s[i0, j0 + 1] * (1 - fu) + s[i0 + 1, j0 + 1] * fu) * fv
 
     def query_support(self, xy: torch.Tensor) -> torch.Tensor:
         """Bilinear support-field value at world xy (differentiable)."""

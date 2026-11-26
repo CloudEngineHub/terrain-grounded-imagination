@@ -33,22 +33,24 @@ def _xyzw_to_wxyz(q):
 
 class IsaacLocoSim:
     def __init__(self, num_envs: int, device: str, seed: int = 0, stones_share: float = 0.6, push_interval_s=(1.0, 3.0),
-                 push_vel=None, play: bool = False, cfg=None, sgs_spawns: int = 4, sgs_dirs: int = 4, sgs_window: int = 16,
-                 sgs_neighbor: float = 0.25, sgs_target: float = 0.8, pit_step: float = 0.05,
-                 straight_frac: float = 0.0):
+                 sgs_spawns: int = 4, sgs_dirs: int = 4, sgs_window: int = 16, sgs_neighbor: float = 0.25,
+                 sgs_target: float = 0.8, pit_step: float = 0.05, phys: str = ""):
         launch_app()
         import mujoco
         from isaaclab.envs import ManagerBasedRLEnv
         from isaaclab.terrains import TerrainImporter
 
-        cfg = cfg or make_isaac_env_cfg(num_envs, seed, stones_share, pit_step=pit_step)
+        cfg = make_isaac_env_cfg(num_envs, seed, stones_share, pit_step=pit_step, phys=phys)
+        self.decimation = int(cfg.decimation)
+        # keep every physics substep of the control step: the force labels are the step means
+        cfg.scene.contact_forces.history_length = max(self.decimation, int(cfg.scene.contact_forces.history_length))
         if sgs_spawns > 1:  # spawn patches tile the reset event's square instead of widening it
             n = int(round(sgs_spawns ** 0.5))
             assert n * n == sgs_spawns, sgs_spawns
             pr = cfg.events.reset_base.params["pose_range"]
             pr["x"], pr["y"] = (pr["x"][0] / n, pr["x"][1] / n), (pr["y"][0] / n, pr["y"][1] / n)
         self.cfg = cfg
-        self.device, self.N, self.play = device, num_envs, play
+        self.device, self.N = device, num_envs
 
         # keep the terrain mesh for the heightmap
         meshes = {}
@@ -69,9 +71,6 @@ class IsaacLocoSim:
 
         self._snap = None
         self.extra_termination = None
-        # zero-yaw episodes: no heading control, ang_vel_z = 0
-        self.straight_frac = straight_frac
-        self.straight = torch.zeros(num_envs, dtype=torch.bool, device=device)
         self.env = _Env(cfg)
         TerrainImporter.import_mesh = orig_import
         self.env._loco_sim = self
@@ -99,9 +98,7 @@ class IsaacLocoSim:
 
         self._randomize()
         self.push_interval = push_interval_s
-        self.push_vel = push_vel if push_vel is not None else {
-            "x": 0.5, "y": 0.5, "z": 0.4, "roll": 0.52, "pitch": 0.52, "yaw": 0.78}
-        self.push_on = not play
+        self.push_vel = {"x": 0.5, "y": 0.5, "z": 0.4, "roll": 0.52, "pitch": 0.52, "yaw": 0.78}
         self.next_push = self._sample_push_time(num_envs)
         self.t = torch.zeros(num_envs, device=device)
         self.a_prev = torch.zeros(num_envs, NUM_J, device=device)
@@ -206,7 +203,13 @@ class IsaacLocoSim:
         return unflatten_state(self.flat_state())
 
     def command(self) -> torch.Tensor:
+        """Body-frame velocity command of the base env."""
         return self.env.command_manager.get_command("base_velocity").clone()
+
+    def foot_forces(self) -> torch.Tensor:
+        """Net contact force on each foot (N, 2, 3), world frame, averaged over the control step's physics substeps
+        (labels of the world model's contact forces)."""
+        return self.contact.data.net_forces_w_history.torch[:, :self.decimation][:, :, self.feet].mean(1)
 
     def foot_contact(self) -> torch.Tensor:
         f = self.contact.data.net_forces_w.torch[:, self.feet]
@@ -219,7 +222,8 @@ class IsaacLocoSim:
         if not self._first:
             if self._snap is None:
                 imp = self.env.scene.terrain
-                self._snap = (self.flat_state(), self.foot_contact(), imp.terrain_levels.clone(), imp.terrain_types.clone())
+                self._snap = (self.flat_state(), self.foot_contact(), imp.terrain_levels.clone(), imp.terrain_types.clone(),
+                              self.foot_forces())
             self._sgs.record(self.cfg_id[ids], self._success(ids))
         imp = self.env.scene.terrain
         cols = imp.terrain_origins.shape[1]
@@ -238,37 +242,20 @@ class IsaacLocoSim:
             imp.env_origins[ids, :2] += ((off + 0.5) / n - 0.5) * span  # reset_base adds U(+-span / 2n)
 
     def _after_reset(self, env_ids):
-        """Heading target for the sampled travel direction; zero-yaw episodes spawn facing it, without heading control."""
+        """Heading target for the sampled travel direction."""
+        if self.sgs_dirs <= 1:
+            return
         if isinstance(env_ids, slice) or env_ids is None:
             env_ids = range(self.N)[env_ids or slice(None)]
         ids = torch.as_tensor(env_ids, device=self.device, dtype=torch.long)
         cmd = self.env.command_manager.get_term("base_velocity")
-        if self.straight_frac > 0:
-            self.straight[ids] = torch.rand(len(ids), device=self.device) < self.straight_frac
-        if self.sgs_dirs <= 1:
-            self._enforce_straight(cmd)
-            return
         b = (self.cfg_id[ids] % self.sgs_dirs).float()
         w = 2 * math.pi / self.sgs_dirs
         travel = (b + torch.rand_like(b)) * w - math.pi
         v = cmd.vel_command_b[ids]
         h = travel - torch.atan2(v[:, 1], v[:, 0])
         cmd.heading_target[ids] = torch.atan2(torch.sin(h), torch.cos(h))
-        sids = ids[self.straight[ids]]
-        if len(sids) > 0:  # face the travel direction from the start (yaw-only spawn orientation, xyzw)
-            pose = self.robot.data.root_link_pose_w.torch[sids].clone()
-            hy = cmd.heading_target[sids] * 0.5
-            pose[:, 3:7] = torch.stack((torch.zeros_like(hy), torch.zeros_like(hy), torch.sin(hy), torch.cos(hy)), -1)
-            self.robot.write_root_link_pose_to_sim_index(root_pose=pose, env_ids=sids)
-        self._enforce_straight(cmd)
 
-    def _enforce_straight(self, cmd=None):
-        if self.straight_frac <= 0:
-            return
-        cmd = cmd or self.env.command_manager.get_term("base_velocity")
-        m = self.straight
-        cmd.is_heading_env[m] = False
-        cmd.vel_command_b[m, 2] = 0.0
     def _success(self, ids):
         e = self.env
         xy = self.robot.data.root_link_pose_w.torch[ids, :2]
@@ -284,8 +271,6 @@ class IsaacLocoSim:
         return torch.empty(n, device=self.device).uniform_(lo, hi)
 
     def pre_step(self):
-        if not self.push_on:
-            return torch.zeros(self.N, dtype=torch.bool, device=self.device)
         push = self.t >= self.next_push
         ids = push.nonzero(as_tuple=False).squeeze(-1)
         if len(ids) > 0:
@@ -307,13 +292,12 @@ class IsaacLocoSim:
         self.cmd_dist += cmd[:, :2].norm(dim=-1) * self.dt
         self._snap = None
         _, rew, term, timeout, extras = self.env.step(a[:, self.m_of_i])
-        self._enforce_straight()  # (the 10 s command resample redraws heading envs and ang_vel_z)
-        s1, c1 = self.flat_state(), self.foot_contact()
+        s1, c1, f1 = self.flat_state(), self.foot_contact(), self.foot_forces()
         done = term | timeout
         ids = done.nonzero(as_tuple=False).squeeze(-1)
         if len(ids) > 0:  # finished episodes: their pre-reset state, captured inside the reset
-            s1[ids], c1[ids] = self._snap[0][ids], self._snap[1][ids]
-        out = {"s": s, "a": a.clone(), "a_prev": a_prev, "s1": s1, "c1": c1, "cmd": cmd, "xi": xi,
+            s1[ids], c1[ids], f1[ids] = self._snap[0][ids], self._snap[1][ids], self._snap[4][ids]
+        out = {"s": s, "a": a.clone(), "a_prev": a_prev, "s1": s1, "c1": c1, "f1": f1, "cmd": cmd, "xi": xi,
                "r_sim": rew.clone(), "term": term.clone(), "done": done.clone(), "ep_step": self.ep_len.clone()}
         self.ep_ret += rew
         self.ep_len += 1
@@ -334,6 +318,32 @@ class IsaacLocoSim:
             self.start_xy[ids] = self.robot.data.root_link_pose_w.torch[ids, :2]
         out["log_step"] = {}
         self.pre_step()
+        return out
+
+    LAVA_DZ = 0.10  # stones tiles: terrain more than this below the platform top is the pit floor (stone tops +-5 cm)
+
+    def lava_mask(self, hm) -> torch.Tensor:
+        """(nx, ny) 1 on the pit floor of stepping-stone tiles (the floor is lava there), else 0."""
+        gen = self.cfg.scene.terrain.terrain_generator
+        names = list(gen.sub_terrains.keys())
+        stone_types = [i for i, n in enumerate(names) if n.startswith("stepping_stones")]
+        org = self.env.scene.terrain.terrain_origins  # (rows, cols, 3): tile centres at the platform top
+        sx, sy = gen.size
+        dev = hm.h.device
+        xs = hm.ox + hm.res * torch.arange(hm.nx, device=dev)
+        ys = hm.oy + hm.res * torch.arange(hm.ny, device=dev)
+        out = torch.zeros_like(hm.h)
+        for c in range(org.shape[1]):
+            if int(self.col_type[c]) not in stone_types:
+                continue
+            for r in range(org.shape[0]):
+                ox, oy, oz = (float(v) for v in org[r, c])
+                i = ((xs > ox - sx / 2) & (xs < ox + sx / 2)).nonzero().squeeze(-1)
+                j = ((ys > oy - sy / 2) & (ys < oy + sy / 2)).nonzero().squeeze(-1)
+                if len(i) == 0 or len(j) == 0:
+                    continue
+                blk = hm.h[i[0]:i[-1] + 1, j[0]:j[-1] + 1]
+                out[i[0]:i[-1] + 1, j[0]:j[-1] + 1] = (blk < oz - self.LAVA_DZ).float()
         return out
 
     def heightmap(self, device: str, res: float = 0.04):

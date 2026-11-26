@@ -1,4 +1,4 @@
-"""World model (dynamics + foot contacts), policy and critic networks, and the replay buffer."""
+"""World model (dynamics + sole contact wrenches), policy and critic networks, and the replay buffer."""
 
 from .buffer import ReplayBuffer
-from .networks import Critic, Policy, RunningNorm, WorldModel
+from .networks import Critic, Policy, ImpulseWorldModel, RunningNorm, WorldModel

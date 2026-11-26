@@ -23,8 +23,8 @@ class Collector:
         self.steps = 0  # simulator transitions collected (environments x steps)
         if threaded:
             pi_act = copy.deepcopy(pi).requires_grad_(False)
-            fpm_act = copy.deepcopy(fpm).requires_grad_(False) if fpm is not None else None
-            self._copies = [(d, s) for a, b in ((pi_act, pi), (fpm_act, fpm)) if a is not None
+            fpm_act = copy.deepcopy(fpm).requires_grad_(False)
+            self._copies = [(d, s) for a, b in ((pi_act, pi), (fpm_act, fpm))
                             for d, s in zip(a.state_dict().values(), b.state_dict().values())]
             self.sim_stream = torch.cuda.default_stream()
             self.train_stream = torch.cuda.Stream()
@@ -78,14 +78,19 @@ class Collector:
             self.train_stream.wait_event(job["done"])
         records, level = job["result"]
         mdp, wm = self.mdp, self.wm
+        # frozen normalizers (count reached max_count, ~20k iterations at 4096 envs) skip their inputs entirely: the
+        # world-model terrain features of every new transition cost ~45 ms per iteration (one host sync per finish)
+        live = [n.count < n.max_count for n in (wm.in_norm, wm.out_norm)]
+        live = [bool(x) for x in torch.stack(live).tolist()]
         for o, extra, out in records:
-            self.pi.obs_norm.update(o)
-            self.pi.extra_norm.update(extra)
+            self.pi.update_norms(o, extra)
             S0, S1 = unflatten_state(out["s"]), unflatten_state(out["s1"])
             self.buffer.add(out)
-            wm.in_norm.update(wm.inputs(S0, mdp.wm_terrain(S0), mdp.joint_target(out["a"]), mdp.joint_target(out["a_prev"]),
-                                        normalize_xi(out["xi"])))
-            wm.out_norm.update(wm.targets(S0, S1))
+            if live[0]:
+                wm.in_norm.update(wm.inputs(S0, mdp.wm_terrain(S0), mdp.joint_target(out["a"]),
+                                            mdp.joint_target(out["a_prev"]), normalize_xi(out["xi"])))
+            if live[1]:
+                wm.out_norm.update(wm.targets(S0, S1))
             self.steps += self.sim.N
             self.logger.add_transition(out, S1, self.sim.dt)
         self.logger.add_level(level)
