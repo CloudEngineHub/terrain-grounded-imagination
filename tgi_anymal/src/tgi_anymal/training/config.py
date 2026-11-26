@@ -103,7 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--w_lat", type=float, default=-1.0, help="lateral base velocity squared (forward locomotion)")
     g.add_argument("--w_impact", type=float, default=-3.0,
                    help="foot impact penalty: sum_feet max(|F| - impact_n, 0) / 100 N, F from the world model")
-    g.add_argument("--impact_n", type=float, default=350.0, help="foot force (N) above which --w_impact applies")
+    g.add_argument("--impact_n", type=float, default=600.0, help="foot force (N) above which --w_impact applies")
     g.add_argument("--w_power", type=float, default=-0.002, help="mechanical power penalty per W: sum_j |tau_j qd_j| (PD-law tau)")
     g.add_argument("--w_term", type=float, default=-500.0, help="termination penalty per second (x dt)")
     g.add_argument("--term_floor", type=float, default=-2.5,

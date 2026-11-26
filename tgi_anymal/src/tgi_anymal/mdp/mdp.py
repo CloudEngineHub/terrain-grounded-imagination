@@ -34,7 +34,7 @@ class RewardCfg:
     w_lat: float = -1.0  # lateral base velocity squared (body frame)
     # foot impact (the world model's contact forces, K["ff"]): anti-stomping
     w_impact: float = -3.0  # sum over feet of max(|F_foot| - impact_n, 0) / 100 N
-    impact_n: float = 350.0
+    impact_n: float = 600.0
     w_power: float = -0.002  # mechanical power: sum_j |tau_j qd_j| (W), tau from the PD law (constants.KP / KD)
     term_angle: float = 1.4
     term_height: float = 0.25  # base above the terrain under it

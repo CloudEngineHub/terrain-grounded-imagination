@@ -66,7 +66,7 @@ The export is in the `fpm` format, so `python scripts/play.py --checkpoint <expo
 
 - **Environment.** Isaac Lab's ANYmal-D rough-terrain task on Newton physics with its ANYdrive LSTM actuator model: reach a goal within 8 s over climbs, gaps, pits, boxes, stairs and stepping stones.
 - **Terrain input in 3D.** The distance and direction from each foot and from spheres on the knees, shanks, thighs and body to the nearest surface, including walls.
-- **Contacts on every body part.** The world model predicts the contact force on each foot and body part, such as a knee pressing on a wall during a climb or the impact of a landing; foot forces above 350 N are penalized.
+- **Contacts on every body part.** The world model predicts the contact force on each foot and body part, such as a knee pressing on a wall during a climb or the impact of a landing; foot forces above 600 N are penalized.
 
 ### Training
 
